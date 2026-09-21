@@ -1,5 +1,4 @@
 import flet as ft
-
 from app.models import Subject
 from app.services import (
     add_subject,
@@ -12,7 +11,6 @@ from app.services import (
 )
 from app.storage import load_subjects, save_subjects
 
-
 DATA_FILE = "data.json"
 
 
@@ -20,48 +18,75 @@ def main(page: ft.Page):
     page.title = "Student Grade Tracker"
     page.padding = 0
     page.theme_mode = ft.ThemeMode.LIGHT
-    page.bgcolor = ft.Colors.GREY_100
+    page.theme = ft.Theme(color_scheme_seed="#0F4C5C")
+    page.bgcolor = "#F2F5F6"
     page.scroll = ft.ScrollMode.AUTO
 
     subjects: list[Subject] = load_subjects(DATA_FILE)
 
     # =========================================================
-    # COLORS
+    # DESIGN TOKENS
     # =========================================================
+    # Palette: deep ink-teal as the single brand colour, cool paper
+    # background, and semantic colours reserved for grade statuses.
 
-    PRIMARY = ft.Colors.BLUE_700
-    PRIMARY_LIGHT = ft.Colors.BLUE_50
-    TEXT_PRIMARY = ft.Colors.GREY_900
-    TEXT_SECONDARY = ft.Colors.GREY_600
-    TEXT_MUTED = ft.Colors.GREY_500
-    BORDER = ft.Colors.GREY_200
+    PRIMARY = "#0F4C5C"  # ink teal
+    PRIMARY_LIGHT = "#E3EEF0"  # tinted surface for icon tiles
+    BACKGROUND = "#F2F5F6"
     CARD = ft.Colors.WHITE
+    SURFACE = "#F7F9FA"  # rows inside a card
+    BORDER = "#DDE5E8"
+    TRACK = "#E3EAED"  # empty part of progress bars
+
+    TEXT_PRIMARY = "#14232A"
+    TEXT_SECONDARY = "#5B6B72"
+    TEXT_MUTED = "#8A979D"
+
+    # Status colours: (foreground, background)
+    STATUS_EXCELLENT = ("#1E7A4F", "#E4F3EB")
+    STATUS_GOOD = (PRIMARY, PRIMARY_LIGHT)
+    STATUS_SATISFACTORY = ("#A86200", "#FBEFD9")
+    STATUS_LOW = ("#B3372F", "#FBE6E4")
+
+    # Radii by hierarchy: cards > rows/inputs > pills
+    RADIUS_CARD = 18
+    RADIUS_ROW = 12
+    RADIUS_FIELD = 10
+
+    STATUS_COLUMN_WIDTH = 120
+    GRADE_COLUMN_WIDTH = 60
 
     # =========================================================
     # INPUT CONTROLS
     # =========================================================
 
+    field_style = dict(
+        border_radius=RADIUS_FIELD,
+        filled=True,
+        bgcolor=SURFACE,
+        border_color=BORDER,
+        focused_border_color=PRIMARY,
+        focused_border_width=2,
+        cursor_color=PRIMARY,
+        text_size=14,
+        dense=True,
+    )
+
     subject_name = ft.TextField(
         label="Subject name",
         hint_text="e.g. Programming",
+        prefix_icon=ft.Icons.EDIT_OUTLINED,
         expand=True,
-        border_radius=10,
-        filled=True,
-        bgcolor=CARD,
-        border_color=ft.Colors.GREY_300,
-        dense=True,
+        **field_style,
     )
 
     grade_input = ft.TextField(
         label="Grade",
         hint_text="0-100",
+        prefix_icon=ft.Icons.STAR_OUTLINE,
         keyboard_type=ft.KeyboardType.NUMBER,
         width=150,
-        border_radius=10,
-        filled=True,
-        bgcolor=CARD,
-        border_color=ft.Colors.GREY_300,
-        dense=True,
+        **field_style,
     )
 
     search_input = ft.TextField(
@@ -69,11 +94,7 @@ def main(page: ft.Page):
         hint_text="Type subject name...",
         expand=True,
         prefix_icon=ft.Icons.SEARCH,
-        filled=True,
-        bgcolor=CARD,
-        border_radius=10,
-        border_color=ft.Colors.GREY_300,
-        dense=True,
+        **field_style,
     )
 
     # =========================================================
@@ -82,29 +103,29 @@ def main(page: ft.Page):
 
     average_text = ft.Text(
         "0.00",
-        size=34,
-        weight=ft.FontWeight.BOLD,
-        color=PRIMARY,
+        size=44,
+        weight=ft.FontWeight.W_800,
+        color=ft.Colors.WHITE,
     )
 
     min_text = ft.Text(
         "-",
-        size=22,
-        weight=ft.FontWeight.BOLD,
+        size=26,
+        weight=ft.FontWeight.W_700,
         color=TEXT_PRIMARY,
     )
 
     max_text = ft.Text(
         "-",
-        size=22,
-        weight=ft.FontWeight.BOLD,
+        size=26,
+        weight=ft.FontWeight.W_700,
         color=TEXT_PRIMARY,
     )
 
     count_text = ft.Text(
         "0",
-        size=22,
-        weight=ft.FontWeight.BOLD,
+        size=26,
+        weight=ft.FontWeight.W_700,
         color=TEXT_PRIMARY,
     )
 
@@ -121,13 +142,13 @@ def main(page: ft.Page):
                             ft.Container(
                                 content=ft.Icon(
                                     icon,
-                                    size=19,
+                                    size=18,
                                     color=PRIMARY,
                                 ),
-                                width=36,
-                                height=36,
+                                width=34,
+                                height=34,
                                 alignment=ft.Alignment.CENTER,
-                                border_radius=9,
+                                border_radius=RADIUS_FIELD,
                                 bgcolor=PRIMARY_LIGHT,
                             ),
                             ft.Text(
@@ -137,15 +158,16 @@ def main(page: ft.Page):
                                 weight=ft.FontWeight.W_500,
                             ),
                         ],
-                        spacing=9,
+                        spacing=10,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
-                    ft.Container(height=6),
+                    ft.Container(height=10),
                     value_control,
                 ],
                 spacing=0,
             ),
-            padding=16,
-            border_radius=14,
+            padding=18,
+            border_radius=RADIUS_CARD,
             bgcolor=CARD,
             border=ft.Border.all(1, BORDER),
             expand=True,
@@ -157,8 +179,9 @@ def main(page: ft.Page):
 
     error_text = ft.Text(
         "",
-        color=ft.Colors.RED_700,
+        color="#B3372F",
         size=13,
+        weight=ft.FontWeight.W_500,
     )
 
     # =========================================================
@@ -171,25 +194,53 @@ def main(page: ft.Page):
 
     subjects_count_text = ft.Text(
         "0 total",
-        size=13,
-        color=TEXT_SECONDARY,
+        size=12,
+        weight=ft.FontWeight.W_600,
+        color=PRIMARY,
     )
 
     # =========================================================
     # HELPERS
     # =========================================================
 
-    def get_status_color(status: str):
+    def get_status_colors(status: str):
         if status == "Excellent":
-            return ft.Colors.GREEN_700
+            return STATUS_EXCELLENT
 
         if status == "Good":
-            return PRIMARY
+            return STATUS_GOOD
 
         if status == "Satisfactory":
-            return ft.Colors.ORANGE_700
+            return STATUS_SATISFACTORY
 
-        return ft.Colors.RED_700
+        return STATUS_LOW
+
+    def get_status_color(status: str):
+        return get_status_colors(status)[0]
+
+    def section_title(title: str, subtitle: str | None = None):
+        controls = [
+            ft.Text(
+                title,
+                size=18,
+                weight=ft.FontWeight.W_700,
+                color=TEXT_PRIMARY,
+            )
+        ]
+
+        if subtitle:
+            controls.append(
+                ft.Text(
+                    subtitle,
+                    size=12,
+                    color=TEXT_SECONDARY,
+                )
+            )
+
+        return ft.Column(
+            controls=controls,
+            spacing=2,
+        )
 
     def update_statistics():
         average = calculate_average(subjects)
@@ -198,13 +249,9 @@ def main(page: ft.Page):
 
         average_text.value = f"{average:.2f}"
 
-        min_text.value = (
-            "-" if minimum is None else str(minimum)
-        )
+        min_text.value = "-" if minimum is None else str(minimum)
 
-        max_text.value = (
-            "-" if maximum is None else str(maximum)
-        )
+        max_text.value = "-" if maximum is None else str(maximum)
 
         count_text.value = str(len(subjects))
 
@@ -224,11 +271,7 @@ def main(page: ft.Page):
         if removed:
             save_subjects(subjects, DATA_FILE)
 
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text(
-                    f"'{name}' was deleted."
-                )
-            )
+            page.snack_bar = ft.SnackBar(content=ft.Text(f"'{name}' was deleted."))
             page.snack_bar.open = True
 
             refresh_subjects()
@@ -239,102 +282,119 @@ def main(page: ft.Page):
 
     def create_subject_card(subject: Subject):
         status = get_grade_status(subject.grade)
+        status_fg, status_bg = get_status_colors(status)
+
+        progress = max(0, min(subject.grade, 100)) / 100
 
         status_badge = ft.Container(
-            content=ft.Text(
-                status,
-                color=get_status_color(status),
-                weight=ft.FontWeight.BOLD,
-                size=12,
+            content=ft.Row(
+                controls=[
+                    ft.Container(
+                        width=7,
+                        height=7,
+                        border_radius=4,
+                        bgcolor=status_fg,
+                    ),
+                    ft.Text(
+                        status,
+                        color=status_fg,
+                        weight=ft.FontWeight.W_600,
+                        size=12,
+                    ),
+                ],
+                spacing=6,
+                tight=True,
             ),
             padding=ft.Padding(
                 left=10,
-                right=10,
+                right=12,
                 top=5,
                 bottom=5,
             ),
             border_radius=20,
-            bgcolor=ft.Colors.GREY_100,
+            bgcolor=status_bg,
         )
 
         return ft.Container(
             content=ft.Row(
                 controls=[
-                    # Subject icon
+                    # Subject icon (tinted by status)
                     ft.Container(
                         content=ft.Icon(
                             ft.Icons.BOOK_OUTLINED,
-                            size=21,
-                            color=PRIMARY,
+                            size=20,
+                            color=status_fg,
                         ),
                         width=42,
                         height=42,
                         alignment=ft.Alignment.CENTER,
-                        border_radius=10,
-                        bgcolor=PRIMARY_LIGHT,
+                        border_radius=RADIUS_FIELD,
+                        bgcolor=status_bg,
                     ),
-
-                    # Subject name
+                    # Subject name + grade bar
                     ft.Column(
                         controls=[
                             ft.Text(
                                 subject.name,
                                 size=15,
-                                weight=ft.FontWeight.BOLD,
+                                weight=ft.FontWeight.W_600,
                                 color=TEXT_PRIMARY,
+                                max_lines=1,
                                 overflow=ft.TextOverflow.ELLIPSIS,
                             ),
-                            ft.Text(
-                                "Subject",
-                                size=11,
-                                color=TEXT_MUTED,
+                            ft.ProgressBar(
+                                value=progress,
+                                color=status_fg,
+                                bgcolor=TRACK,
+                                bar_height=4,
+                                border_radius=2,
                             ),
                         ],
-                        spacing=1,
+                        spacing=7,
                         expand=True,
                     ),
-
                     # Grade
                     ft.Container(
                         content=ft.Column(
                             controls=[
                                 ft.Text(
                                     str(subject.grade),
-                                    size=18,
-                                    weight=ft.FontWeight.BOLD,
+                                    size=20,
+                                    weight=ft.FontWeight.W_800,
+                                    color=status_fg,
                                 ),
                                 ft.Text(
-                                    "grade",
+                                    "/ 100",
                                     size=10,
                                     color=TEXT_MUTED,
                                 ),
                             ],
-                            horizontal_alignment=(
-                                ft.CrossAxisAlignment.CENTER
-                            ),
+                            horizontal_alignment=(ft.CrossAxisAlignment.CENTER),
                             spacing=0,
                         ),
-                        width=55,
+                        width=GRADE_COLUMN_WIDTH,
                     ),
-
                     # Status
-                    status_badge,
-
+                    ft.Container(
+                        content=status_badge,
+                        width=STATUS_COLUMN_WIDTH,
+                        alignment=ft.Alignment.CENTER,
+                    ),
                     # Delete
                     ft.IconButton(
                         icon=ft.Icons.DELETE_OUTLINE,
-                        icon_color=ft.Colors.GREY_600,
+                        icon_color=TEXT_MUTED,
+                        icon_size=20,
                         tooltip="Delete subject",
-                        on_click=lambda e, name=subject.name:
-                            delete_subject(name),
+                        on_click=lambda e, name=subject.name: delete_subject(name),
                     ),
                 ],
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=10,
             ),
             padding=12,
-            border_radius=12,
-            bgcolor=CARD,
+            border_radius=RADIUS_ROW,
+            bgcolor=SURFACE,
             border=ft.Border.all(1, BORDER),
         )
 
@@ -357,44 +417,48 @@ def main(page: ft.Page):
                 message = f"No subjects found for '{query}'."
                 icon = ft.Icons.SEARCH_OFF
             else:
-                message = (
-                    "No subjects yet.\n"
-                    "Add your first subject above."
-                )
+                message = "No subjects yet.\nAdd your first subject above."
                 icon = ft.Icons.INBOX_OUTLINED
 
             subjects_column.controls.append(
                 ft.Container(
                     content=ft.Column(
                         controls=[
-                            ft.Icon(
-                                icon,
-                                size=40,
-                                color=ft.Colors.GREY_400,
+                            ft.Container(
+                                content=ft.Icon(
+                                    icon,
+                                    size=30,
+                                    color=PRIMARY,
+                                ),
+                                width=64,
+                                height=64,
+                                alignment=ft.Alignment.CENTER,
+                                border_radius=32,
+                                bgcolor=PRIMARY_LIGHT,
                             ),
                             ft.Text(
                                 message,
-                                italic=True,
                                 color=TEXT_SECONDARY,
                                 text_align=ft.TextAlign.CENTER,
                                 size=13,
                             ),
                         ],
-                        horizontal_alignment=(
-                            ft.CrossAxisAlignment.CENTER
-                        ),
-                        spacing=8,
+                        horizontal_alignment=(ft.CrossAxisAlignment.CENTER),
+                        spacing=12,
                     ),
-                    padding=30,
+                    padding=ft.Padding(
+                        left=20,
+                        right=20,
+                        top=32,
+                        bottom=32,
+                    ),
                     alignment=ft.Alignment.CENTER,
                 )
             )
 
         else:
             for subject in visible_subjects:
-                subjects_column.controls.append(
-                    create_subject_card(subject)
-                )
+                subjects_column.controls.append(create_subject_card(subject))
 
         update_statistics()
         page.update()
@@ -459,10 +523,15 @@ def main(page: ft.Page):
         "Add Subject",
         icon=ft.Icons.ADD,
         on_click=add_new_subject,
+        height=44,
         style=ft.ButtonStyle(
+            bgcolor=PRIMARY,
+            color=ft.Colors.WHITE,
+            elevation=0,
+            shape=ft.RoundedRectangleBorder(radius=RADIUS_FIELD),
             padding=ft.Padding(
-                left=20,
-                right=20,
+                left=22,
+                right=22,
                 top=12,
                 bottom=12,
             ),
@@ -478,27 +547,26 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Icon(
                     ft.Icons.SCHOOL,
-                    size=28,
+                    size=26,
                     color=ft.Colors.WHITE,
                 ),
-                width=50,
-                height=50,
+                width=48,
+                height=48,
                 alignment=ft.Alignment.CENTER,
-                border_radius=12,
+                border_radius=14,
                 bgcolor=PRIMARY,
             ),
-
             ft.Column(
                 controls=[
                     ft.Text(
                         "Student Grade Tracker",
-                        size=23,
-                        weight=ft.FontWeight.BOLD,
+                        size=24,
+                        weight=ft.FontWeight.W_800,
                         color=TEXT_PRIMARY,
                     ),
                     ft.Text(
                         "Manage your subjects and grades",
-                        size=12,
+                        size=13,
                         color=TEXT_SECONDARY,
                     ),
                 ],
@@ -506,177 +574,15 @@ def main(page: ft.Page):
                 expand=True,
             ),
         ],
-        spacing=13,
-    )
-
-    # =========================================================
-    # ADD SUBJECT CARD
-    # =========================================================
-
-    add_subject_card = ft.Container(
-        content=ft.Column(
-            controls=[
-                ft.Text(
-                    "Add subject",
-                    size=19,
-                    weight=ft.FontWeight.BOLD,
-                ),
-
-                ft.Text(
-                    "Enter the subject name and your grade.",
-                    size=12,
-                    color=TEXT_SECONDARY,
-                ),
-
-                ft.Container(height=6),
-
-                ft.ResponsiveRow(
-                    controls=[
-                        ft.Container(
-                            content=subject_name,
-                            col={
-                                "xs": 12,
-                                "sm": 12,
-                                "md": 6,
-                            },
-                        ),
-
-                        ft.Container(
-                            content=grade_input,
-                            col={
-                                "xs": 12,
-                                "sm": 5,
-                                "md": 3,
-                            },
-                        ),
-
-                        ft.Container(
-                            content=add_button,
-                            col={
-                                "xs": 12,
-                                "sm": 7,
-                                "md": 3,
-                            },
-                        ),
-                    ],
-                    spacing=8,
-                    run_spacing=8,
-                ),
-
-                error_text,
-            ],
-            spacing=7,
-        ),
-        padding=18,
-        border_radius=14,
-        bgcolor=CARD,
-        border=ft.Border.all(1, BORDER),
-    )
-
-    # =========================================================
-    # SEARCH CARD
-    # =========================================================
-
-    search_section = ft.Column(
-        controls=[
-            ft.Text(
-                "Search",
-                size=19,
-                weight=ft.FontWeight.BOLD,
-            ),
-
-            search_input,
-        ],
-        spacing=8,
-    )
-
-    # =========================================================
-    # SUBJECTS HEADER
-    # =========================================================
-
-    subjects_header = ft.Row(
-        controls=[
-            ft.Column(
-                controls=[
-                    ft.Text(
-                        "Subjects",
-                        size=19,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    subjects_count_text,
-                ],
-                spacing=1,
-            ),
-        ],
-    )
-
-    # =========================================================
-    # TABLE HEADER
-    # =========================================================
-
-    table_header = ft.Container(
-        content=ft.Row(
-            controls=[
-                ft.Container(width=42),
-
-                ft.Text(
-                    "Subject",
-                    expand=True,
-                    size=12,
-                    weight=ft.FontWeight.BOLD,
-                    color=TEXT_MUTED,
-                ),
-
-                ft.Text(
-                    "Grade",
-                    width=55,
-                    text_align=ft.TextAlign.CENTER,
-                    size=12,
-                    weight=ft.FontWeight.BOLD,
-                    color=TEXT_MUTED,
-                ),
-
-                ft.Text(
-                    "Status",
-                    width=100,
-                    text_align=ft.TextAlign.CENTER,
-                    size=12,
-                    weight=ft.FontWeight.BOLD,
-                    color=TEXT_MUTED,
-                ),
-
-                ft.Container(width=48),
-            ],
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=10,
-        ),
-        padding=ft.Padding(
-            left=12,
-            right=12,
-            top=2,
-            bottom=2,
-        ),
-    )
-
-    # =========================================================
-    # SUBJECTS LIST
-    # =========================================================
-
-    subjects_section = ft.Container(
-        content=ft.Column(
-            controls=[
-                subjects_header,
-                ft.Container(height=3),
-                table_header,
-                subjects_column,
-            ],
-            spacing=4,
-        ),
+        spacing=14,
+        vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
     # =========================================================
     # STATISTICS
     # =========================================================
+    # The average is the one bold element of the page: a solid
+    # ink-teal card with a large number. Everything else stays quiet.
 
     average_card = ft.Container(
         content=ft.Column(
@@ -686,27 +592,33 @@ def main(page: ft.Page):
                         ft.Container(
                             content=ft.Icon(
                                 ft.Icons.TRENDING_UP,
-                                size=24,
+                                size=22,
                                 color=ft.Colors.WHITE,
                             ),
-                            width=44,
-                            height=44,
+                            width=40,
+                            height=40,
                             alignment=ft.Alignment.CENTER,
-                            border_radius=11,
-                            bgcolor=PRIMARY,
+                            border_radius=RADIUS_FIELD,
+                            bgcolor=ft.Colors.with_opacity(
+                                0.16,
+                                ft.Colors.WHITE,
+                            ),
                         ),
-
                         ft.Column(
                             controls=[
                                 ft.Text(
                                     "Average grade",
                                     size=13,
-                                    color=TEXT_SECONDARY,
+                                    weight=ft.FontWeight.W_600,
+                                    color=ft.Colors.WHITE,
                                 ),
                                 ft.Text(
                                     "Overall performance",
                                     size=11,
-                                    color=TEXT_MUTED,
+                                    color=ft.Colors.with_opacity(
+                                        0.7,
+                                        ft.Colors.WHITE,
+                                    ),
                                 ),
                             ],
                             spacing=1,
@@ -714,24 +626,24 @@ def main(page: ft.Page):
                         ),
                     ],
                     spacing=10,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-
                 ft.Container(height=10),
-
                 average_text,
-
                 ft.Text(
                     "out of 100",
                     size=11,
-                    color=TEXT_MUTED,
+                    color=ft.Colors.with_opacity(
+                        0.7,
+                        ft.Colors.WHITE,
+                    ),
                 ),
             ],
             spacing=0,
         ),
-        padding=18,
-        border_radius=14,
-        bgcolor=CARD,
-        border=ft.Border.all(1, BORDER),
+        padding=20,
+        border_radius=RADIUS_CARD,
+        bgcolor=PRIMARY,
         expand=True,
     )
 
@@ -742,11 +654,10 @@ def main(page: ft.Page):
                 col={
                     "xs": 12,
                     "sm": 12,
-                    "md": 6,
+                    "md": 12,
                     "lg": 3,
                 },
             ),
-
             ft.Container(
                 content=create_stat_card(
                     "Minimum",
@@ -756,11 +667,10 @@ def main(page: ft.Page):
                 col={
                     "xs": 12,
                     "sm": 4,
-                    "md": 2,
+                    "md": 4,
                     "lg": 3,
                 },
             ),
-
             ft.Container(
                 content=create_stat_card(
                     "Maximum",
@@ -770,11 +680,10 @@ def main(page: ft.Page):
                 col={
                     "xs": 12,
                     "sm": 4,
-                    "md": 2,
+                    "md": 4,
                     "lg": 3,
                 },
             ),
-
             ft.Container(
                 content=create_stat_card(
                     "Subjects",
@@ -784,59 +693,185 @@ def main(page: ft.Page):
                 col={
                     "xs": 12,
                     "sm": 4,
-                    "md": 2,
+                    "md": 4,
                     "lg": 3,
                 },
             ),
         ],
-        spacing=10,
-        run_spacing=10,
+        spacing=12,
+        run_spacing=12,
+    )
+
+    # =========================================================
+    # ADD SUBJECT CARD
+    # =========================================================
+
+    add_subject_card = ft.Container(
+        content=ft.Column(
+            controls=[
+                section_title(
+                    "Add subject",
+                    "Enter the subject name and your grade.",
+                ),
+                ft.Container(height=4),
+                ft.ResponsiveRow(
+                    controls=[
+                        ft.Container(
+                            content=subject_name,
+                            col={
+                                "xs": 12,
+                                "sm": 12,
+                                "md": 6,
+                            },
+                        ),
+                        ft.Container(
+                            content=grade_input,
+                            col={
+                                "xs": 12,
+                                "sm": 5,
+                                "md": 3,
+                            },
+                        ),
+                        ft.Container(
+                            content=add_button,
+                            col={
+                                "xs": 12,
+                                "sm": 7,
+                                "md": 3,
+                            },
+                        ),
+                    ],
+                    spacing=10,
+                    run_spacing=10,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                error_text,
+            ],
+            spacing=8,
+        ),
+        padding=22,
+        border_radius=RADIUS_CARD,
+        bgcolor=CARD,
+        border=ft.Border.all(1, BORDER),
+    )
+
+    # =========================================================
+    # TABLE HEADER
+    # =========================================================
+
+    table_header = ft.Container(
+        content=ft.Row(
+            controls=[
+                ft.Container(width=42),
+                ft.Text(
+                    "Subject",
+                    expand=True,
+                    size=12,
+                    weight=ft.FontWeight.W_600,
+                    color=TEXT_MUTED,
+                ),
+                ft.Text(
+                    "Grade",
+                    width=GRADE_COLUMN_WIDTH,
+                    text_align=ft.TextAlign.CENTER,
+                    size=12,
+                    weight=ft.FontWeight.W_600,
+                    color=TEXT_MUTED,
+                ),
+                ft.Text(
+                    "Status",
+                    width=STATUS_COLUMN_WIDTH,
+                    text_align=ft.TextAlign.CENTER,
+                    size=12,
+                    weight=ft.FontWeight.W_600,
+                    color=TEXT_MUTED,
+                ),
+                ft.Container(width=48),
+            ],
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=10,
+        ),
+        padding=ft.Padding(
+            left=13,
+            right=13,
+            top=2,
+            bottom=2,
+        ),
+    )
+
+    # =========================================================
+    # SUBJECTS CARD (title + search + list)
+    # =========================================================
+
+    subjects_section = ft.Container(
+        content=ft.Column(
+            controls=[
+                ft.Row(
+                    controls=[
+                        section_title("Subjects"),
+                        ft.Container(
+                            content=subjects_count_text,
+                            padding=ft.Padding(
+                                left=12,
+                                right=12,
+                                top=5,
+                                bottom=5,
+                            ),
+                            border_radius=20,
+                            bgcolor=PRIMARY_LIGHT,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                ft.Row(
+                    controls=[search_input],
+                ),
+                table_header,
+                subjects_column,
+            ],
+            spacing=12,
+        ),
+        padding=22,
+        border_radius=RADIUS_CARD,
+        bgcolor=CARD,
+        border=ft.Border.all(1, BORDER),
     )
 
     # =========================================================
     # MAIN CONTENT
     # =========================================================
+    # Content is centred and capped by responsive column spans,
+    # so it stays readable on wide screens.
 
-    content = ft.Container(
-        content=ft.Column(
-            controls=[
-                header,
-
-                ft.Container(height=4),
-
-                add_subject_card,
-
-                ft.Container(height=14),
-
-                search_section,
-
-                ft.Container(height=14),
-
-                subjects_section,
-
-                ft.Container(height=18),
-
-                ft.Text(
-                    "Statistics",
-                    size=19,
-                    weight=ft.FontWeight.BOLD,
+    content = ft.ResponsiveRow(
+        controls=[
+            ft.Container(
+                content=ft.Column(
+                    controls=[
+                        header,
+                        ft.Container(height=2),
+                        statistics,
+                        add_subject_card,
+                        subjects_section,
+                    ],
+                    spacing=16,
                 ),
-
-                ft.Container(height=3),
-
-                statistics,
-
-                ft.Container(height=20),
-            ],
-            spacing=0,
-        ),
-        padding=ft.Padding(
-            left=24,
-            right=24,
-            top=22,
-            bottom=30,
-        ),
-        width=float("inf"),
+                col={
+                    "xs": 12,
+                    "md": 11,
+                    "lg": 9,
+                    "xl": 8,
+                },
+                padding=ft.Padding(
+                    left=16,
+                    right=16,
+                    top=28,
+                    bottom=36,
+                ),
+            ),
+        ],
+        alignment=ft.MainAxisAlignment.CENTER,
     )
 
     page.add(content)
